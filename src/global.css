@@ -1,0 +1,5 @@
+/* scrollbar */
+@import 'simplebar-react/dist/simplebar.min.css';
+.css-1oqqzyl-MuiContainer-root{
+    max-width: 99% !important;
+}
