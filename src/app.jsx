@@ -4,7 +4,6 @@ import 'src/global.css';
 import { useScrollToTop } from 'src/hooks/use-scroll-to-top';
 
 import Router from 'src/routes/sections';
-import ThemeProvider from 'src/theme';
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,28 +19,49 @@ export default function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const USER_DATA = localStorage.getItem(import.meta.env.VITE_LOCAL_STORAGE_USER_KEY);
-    const parseredData = JSON.parse(USER_DATA);
-
-    if (parseredData?.jwt) {
-      const tokenParts = parseredData.jwt.split('.');
-      const decodedPayload = JSON.parse(atob(tokenParts[1]));
-      
-      const currentTime = Date.now() / 1000;
-      if (decodedPayload.exp < currentTime) {
-        logoutActionHandler({ dispatch, navigate });
-      } else {
-        dispatch(loginAction({ data: parseredData }));
-      }
+    const storedUser = localStorage.getItem(import.meta.env.VITE_LOCAL_STORAGE_USER_KEY);
+    if (!storedUser) {
+      return;
     }
+
+    let parsedData = null;
+    try {
+      parsedData = JSON.parse(storedUser);
+    } catch (error) {
+      return;
+    }
+
+    if (!parsedData?.jwt) {
+      return;
+    }
+
+    const tokenParts = parsedData.jwt.split('.');
+    if (tokenParts.length < 2) {
+      return;
+    }
+
+    let decodedPayload = null;
+    try {
+      decodedPayload = JSON.parse(atob(tokenParts[1]));
+    } catch (error) {
+      return;
+    }
+
+    const currentTime = Date.now() / 1000;
+    if (decodedPayload.exp < currentTime) {
+      logoutActionHandler({ dispatch, navigate });
+      return;
+    }
+
+    dispatch(loginAction({ data: parsedData }));
+  }, [dispatch, navigate]);
+
+  useEffect(() => {
     if (isAuth) {
       navigate('/');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuth, dispatch]);
+  }, [isAuth, navigate]);
   return (
-    <ThemeProvider>
-      <Router isAuth={isAuth} />
-    </ThemeProvider>
+    <Router isAuth={isAuth} />
   );
 }
